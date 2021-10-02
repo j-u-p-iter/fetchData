@@ -25,6 +25,7 @@
     "playwright-chromium": "^1.15.0"
   },
   "dependencies": {
-    "@j.u.p.iter/custom-error": "^1.6.0"
+    "@j.u.p.iter/custom-error": "^1.6.0",
+    "abort-controller": "^3.0.0"
   }
 }

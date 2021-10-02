@@ -32,7 +32,7 @@ describe("fetchData", () => {
         const result = await fetchData.get(
           "http://some-url.com/products",
           requestOptions
-        );
+        ).request;
 
         expect(result.status).toBe(200);
         expect(result.data).toEqual({
@@ -56,7 +56,7 @@ describe("fetchData", () => {
 
         const result = await fetchData.put("http://some-url.com/products", {
           body: { title: "new title" }
-        });
+        }).request;
 
         expect(result.status).toBe(200);
         expect(result.data).toEqual({
@@ -80,7 +80,7 @@ describe("fetchData", () => {
 
         const result = await fetchData.patch("http://some-url.com/products", {
           body: { title: "new title" }
-        });
+        }).request;
 
         expect(result.status).toBe(200);
         expect(result.data).toEqual({
@@ -107,7 +107,7 @@ describe("fetchData", () => {
         const result = await fetchData.post("http://some-url.com/products", {
           ...requestOptions,
           body: dataToSend
-        });
+        }).request;
 
         expect(result.status).toBe(201);
         expect(result.data).toEqual({
@@ -125,7 +125,7 @@ describe("fetchData", () => {
 
           await fetchData.post("http://some-url.com/products", {
             body: dataToSend
-          });
+          }).request;
         });
       });
 
@@ -153,7 +153,8 @@ describe("fetchData", () => {
           .post("/products")
           .reply(200, { key: "value", oneMoreKey: "oneMoreValue" });
 
-        const response = await fetchData.post("http://some-url.com/products");
+        const response = await fetchData.post("http://some-url.com/products")
+          .request;
 
         expect(response.data).toEqual({
           key: "value",
@@ -170,7 +171,7 @@ describe("fetchData", () => {
 
         const response = await fetchData.post("http://some-url.com/products", {
           type: "text"
-        });
+        }).request;
 
         expect(response.data).toBe("Hello!");
       });
@@ -189,7 +190,7 @@ describe("fetchData", () => {
 
         const response = await fetchData.post("http://some-url.com/products", {
           type: "blob"
-        });
+        }).request;
 
         expect(response.data.constructor.name).toBe("Blob");
         expect(typeof response.data.text).toBe("function");
@@ -211,7 +212,7 @@ describe("fetchData", () => {
 
         const response = await fetchData.post("http://some-url.com/products", {
           type: "arrayBuffer"
-        });
+        }).request;
 
         expect(response.data.constructor.name).toEqual("ArrayBuffer");
         expect(typeof response.data.byteLength).toBe("number");
@@ -226,9 +227,25 @@ describe("fetchData", () => {
         .get("/products")
         .reply(400);
 
-      expect(fetchData.get("http://some-url.com/products")).rejects.toThrow(
-        "Request is not resolved successfully"
+      expect(
+        fetchData.get("http://some-url.com/products").request
+      ).rejects.toThrow("Request is not resolved successfully");
+    });
+  });
+
+  describe("cancelRequest method from response", () => {
+    it("cancels request and throws AbortError", () => {
+      nock("http://some-url.com")
+        .get("/products")
+        .reply(200, { key: "value" });
+
+      const { cancelRequest, request } = fetchData.get(
+        "http://some-url.com/products"
       );
+
+      cancelRequest();
+
+      expect(request).rejects.toThrow("AbortError");
     });
   });
 });

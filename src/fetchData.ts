@@ -1,4 +1,5 @@
 import { CommonHttpError } from "@j.u.p.iter/custom-error";
+import AbortController from "abort-controller";
 /**
  * Handle known errors (HTTPError, TypeError)
  *   and throw uknown unexpected errors.
@@ -33,6 +34,7 @@ interface FetchDataOptions extends RequestInit {
 }
 
 interface FetchDataResponse<T> {
+  cancel: () => void;
   status: number;
   statusText: string;
   data: T;
@@ -99,46 +101,64 @@ const optionsReducer = (options: any, httpMethod: HTTPMethod) => {
  *   5. returning back all response-related data.
  *
  */
-const internalFetch = async <T>(
+const internalFetch = <T>(
   url: string,
   originalOptions: FetchDataOptions,
   httpMethod: HTTPMethod
-): Promise<FetchDataResponse<T>> => {
+): { request: Promise<FetchDataResponse<T>>; cancelRequest: () => void } => {
   const { type, ...options } = originalOptions;
 
   /**
    * Assign request to a variable to be able to pass it with CommonHttpError
    */
 
-  const request = new Request(url, optionsReducer(options, httpMethod));
-
-  const response = await fetch(request);
-
-  /**
-   * Instead of resolving Promise in case of error status (as native Fetch API does),
-   *   we reject it
-   *
-   */
-  if (!response.ok) {
-    throw CommonHttpError(
-      "Request is not resolved successfully",
-      { code: response.status, response, request },
-      { context: "@j.u.p.iter/fetchData" }
-    );
-  }
-
-  /**
-   * In majority of cases we need to resolve data
-   *   as a json. So, we set up the "json" resolving method
-   *   as a default one.
-   */
-  const expectedDataType = type || DEFAULT_EXPECTED_DATA_TYPE;
-  const responseData = await response[expectedDataType]();
-
+  const abortController = new AbortController();
+  const cancelRequest = () => {
+    abortController.abort();
+  };
+  const request = new Request(
+    url,
+    optionsReducer(
+      {
+        ...options,
+        signal: abortController.signal
+      },
+      httpMethod
+    )
+  );
   return {
-    status: response.status,
-    statusText: response.statusText,
-    data: responseData
+    request: (async () => {
+      const response = await fetch(request);
+
+      /**
+       * Instead of resolving Promise in case of error status (as native Fetch API does),
+       *   we reject it
+       *
+       */
+      if (!response.ok) {
+        throw CommonHttpError(
+          "Request is not resolved successfully",
+          { code: response.status, response, request },
+          { context: "@j.u.p.iter/fetchData" }
+        );
+      }
+
+      /**
+       * In majority of cases we need to resolve data
+       *   as a json. So, we set up the "json" resolving method
+       *   as a default one.
+       */
+      const expectedDataType = type || DEFAULT_EXPECTED_DATA_TYPE;
+      const responseData = await response[expectedDataType]();
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        data: responseData,
+        cancel: cancelRequest
+      };
+    })(),
+    cancelRequest
   };
 };
 
