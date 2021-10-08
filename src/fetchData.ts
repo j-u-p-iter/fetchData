@@ -29,6 +29,7 @@ interface FetchDataOptions extends RequestInit {
    *   cause in the mafority of cases the consumer we'll
    *   need to use the data as "json".
    */
+  urlPrefix?: string;
   type?: ResponseBodyType;
   data?: { [key: string]: any };
 }
@@ -90,6 +91,30 @@ const optionsReducer = (options: any, httpMethod: HTTPMethod) => {
   return options;
 };
 
+const constructURL = (url: string, urlPrefix: string): string => {
+  if (!urlPrefix) {
+    return url;
+  }
+
+  let resultURL = url;
+  let resultURLPrefix = urlPrefix;
+
+  /**
+   * We don't allow to start url without "/",
+   *   to make it look like a relative path.
+   *
+   */
+  if (url.startsWith("/")) {
+    resultURL = url.replace(/^\//, "");
+  }
+
+  if (!urlPrefix.endsWith("/")) {
+    resultURLPrefix = urlPrefix + "/";
+  }
+
+  return resultURLPrefix + resultURL;
+};
+
 /**
  * Private _fetch method.
  *
@@ -106,7 +131,9 @@ const internalFetch = <T>(
   originalOptions: FetchDataOptions,
   httpMethod: HTTPMethod
 ): { request: Promise<FetchDataResponse<T>>; cancelRequest: () => void } => {
-  const { type, ...options } = originalOptions;
+  const { type, urlPrefix, ...options } = originalOptions;
+
+  const resultURL = constructURL(url, urlPrefix);
 
   /**
    * Assign request to a variable to be able to pass it with CommonHttpError
@@ -117,7 +144,7 @@ const internalFetch = <T>(
     abortController.abort();
   };
   const request = new Request(
-    url,
+    resultURL,
     optionsReducer(
       {
         ...options,
@@ -126,6 +153,7 @@ const internalFetch = <T>(
       httpMethod
     )
   );
+
   return {
     request: (async () => {
       const response = await fetch(request);
@@ -158,6 +186,7 @@ const internalFetch = <T>(
         cancel: cancelRequest
       };
     })(),
+
     cancelRequest
   };
 };

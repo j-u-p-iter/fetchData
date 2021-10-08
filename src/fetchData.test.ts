@@ -234,7 +234,7 @@ describe("fetchData", () => {
   });
 
   describe("cancelRequest method from response", () => {
-    it("cancels request and throws AbortError", () => {
+    it("cancels request and throws AbortError", async () => {
       nock("http://some-url.com")
         .get("/products")
         .reply(200, { key: "value" });
@@ -245,7 +245,41 @@ describe("fetchData", () => {
 
       cancelRequest();
 
-      expect(request).rejects.toThrow("AbortError");
+      await expect(request).rejects.toThrow("The user aborted a request.");
+    });
+  });
+
+  describe("urlPrefix", () => {
+    describe("without prefix", () => {
+      it("sends request to the original url from arguments", async () => {
+        nock("http://some-url.com")
+          .get("/products")
+          .reply(200, { key: "value" });
+
+        await fetchData.get("http://some-url.com/products").request;
+      });
+    });
+
+    describe("with url, that starts with /, and url prefix that ends with /", () => {
+      it("sends request to the prefixed url", async () => {
+        nock("http://some-url.com")
+          .get("/products")
+          .reply(200, { key: "value" });
+
+        await fetchData.get("/products", { urlPrefix: "http://some-url.com/" })
+          .request;
+      });
+    });
+
+    describe("with url, that does not start with /, and url prefix that does not end with /", () => {
+      it("sends request to the prefixed url", async () => {
+        nock("http://some-url.com")
+          .get("/products")
+          .reply(200, { key: "value" });
+
+        await fetchData.get("products", { urlPrefix: "http://some-url.com" })
+          .request;
+      });
     });
   });
 });
