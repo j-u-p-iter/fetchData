@@ -32,6 +32,10 @@ interface FetchDataOptions extends RequestInit {
   urlPrefix?: string;
   type?: ResponseBodyType;
   data?: { [key: string]: any };
+  hooks?: {
+    beforeRequest?: Array<() => void>;
+    afterResponse?: Array<() => void>;
+  };
 }
 
 interface FetchDataResponse<T> {
@@ -143,6 +147,7 @@ const internalFetch = <T>(
   const cancelRequest = () => {
     abortController.abort();
   };
+
   const request = new Request(
     resultURL,
     optionsReducer(
