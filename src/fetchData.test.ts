@@ -1,6 +1,6 @@
 import nock from "nock";
 import fetch, { Request } from "node-fetch";
-import { fetchData } from ".";
+import { createFetchData, fetchData } from ".";
 
 describe("fetchData", () => {
   describe("shortcut methods", () => {
@@ -280,6 +280,31 @@ describe("fetchData", () => {
         await fetchData.get("products", { urlPrefix: "http://some-url.com" })
           .request;
       });
+    });
+  });
+
+  describe("createFetchData", () => {
+    it("allows to set up default options for fetchData", async () => {
+      nock("http://site.com")
+        .get("/products")
+        .reply(200, { key: "value" });
+      nock("http://new-site.com")
+        .get("/users")
+        .reply(200, { newKey: "newValue" });
+
+      const productsFetchData = createFetchData({
+        urlPrefix: "http://site.com"
+      });
+      const { data: products } = await productsFetchData.get("products")
+        .request;
+
+      const usersFetchData = createFetchData({
+        urlPrefix: "http://new-site.com"
+      });
+      const { data: users } = await usersFetchData.get("users").request;
+
+      expect(products).toEqual({ key: "value" });
+      expect(users).toEqual({ newKey: "newValue" });
     });
   });
 });
