@@ -35,8 +35,8 @@ interface FetchDataOptions extends RequestInit {
   type?: ResponseBodyType;
   data?: { [key: string]: any };
   hooks?: {
-    beforeRequest?: Array<() => void>;
-    afterResponse?: Array<() => void>;
+    beforeRequest?: Array<(request: Request) => void>;
+    afterResponse?: Array<(response: Response) => void>;
   };
 }
 
@@ -58,6 +58,24 @@ const CONTENT_TYPE_HEADER = {
   "Content-Type": "application/json;charset=utf-8"
 };
 const CONTENT_TYPE_HEADER_TITLE = Object.keys(CONTENT_TYPE_HEADER)[0];
+
+const runBeforeRequestHooks = (
+  hooks: Array<(request: Request) => void>,
+  request: Request
+) => {
+  for (const hook of hooks) {
+    hook(request);
+  }
+};
+
+const runAfterResponseHooks = (
+  hooks: Array<(response: Response) => void>,
+  response: Response
+) => {
+  for (const hook of hooks) {
+    hook(response);
+  }
+};
 
 const optionsReducer = (options: any, httpMethod: HTTPMethod) => {
   if (
@@ -137,7 +155,7 @@ const internalFetch = <T>(
   originalOptions: FetchDataOptions,
   httpMethod: HTTPMethod
 ): { request: Promise<FetchDataResponse<T>>; cancelRequest: () => void } => {
-  const { type, urlPrefix, ...options } = originalOptions;
+  const { type, urlPrefix, hooks = {}, ...options } = originalOptions;
 
   const resultURL = constructURL(url, urlPrefix);
 
@@ -161,9 +179,17 @@ const internalFetch = <T>(
     )
   );
 
+  if (hooks.beforeRequest) {
+    runBeforeRequestHooks(hooks.beforeRequest, request);
+  }
+
   return {
     request: (async () => {
       const response = await fetch(request);
+
+      if (hooks.afterResponse) {
+        runAfterResponseHooks(hooks.afterResponse, response);
+      }
 
       /**
        * Instead of resolving Promise in case of error status (as native Fetch API does),
