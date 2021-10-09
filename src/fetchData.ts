@@ -1,5 +1,7 @@
 import { CommonHttpError } from "@j.u.p.iter/custom-error";
 import AbortController from "abort-controller";
+import deepMerge from "deepmerge";
+
 /**
  * Handle known errors (HTTPError, TypeError)
  *   and throw uknown unexpected errors.
@@ -172,7 +174,7 @@ const internalFetch = <T>(
         throw CommonHttpError(
           "Request is not resolved successfully",
           { code: response.status, response, request },
-          { context: "@j.u.p.iter/fetchData" }
+          { context: "@j.u.p.iter/fetch-data" }
         );
       }
 
@@ -202,23 +204,28 @@ const internalFetch = <T>(
  *   duplicate things.
  *
  */
-export const fetchData = enumKeys(HTTPMethod).reduce(
-  (resultFetchData, httpMethod) => {
+export const createFetchData = (
+  defaultOptions: Partial<FetchDataOptions> = {}
+) => {
+  return enumKeys(HTTPMethod).reduce((resultFetchData, httpMethod) => {
     resultFetchData[HTTPMethod[httpMethod]] = <T = any>(
       url: string,
       options: FetchDataOptions = {}
     ) => {
+      const mergedOptions = deepMerge(defaultOptions, options);
+
       return internalFetch<T>(
         url,
         {
           method: HTTPMethod[httpMethod],
-          ...options
+          ...mergedOptions
         },
         HTTPMethod[httpMethod]
       );
     };
 
     return resultFetchData;
-  },
-  {}
-) as any;
+  }, {}) as any;
+};
+
+export const fetchData = createFetchData();

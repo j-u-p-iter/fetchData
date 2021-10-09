@@ -1,5 +1,5 @@
 {
-  "name": "@j.u.p.iter/fetchData",
+  "name": "@j.u.p.iter/fetch-data",
   "version": "0.0.1",
   "description": "Simple but powerful wrapper around browser's native Fetch API",
   "main": "dist/lib/index.js",
@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "@j.u.p.iter/custom-error": "^1.6.1",
-    "abort-controller": "^3.0.0"
+    "abort-controller": "^3.0.0",
+    "deepmerge": "^4.2.2"
   },
   "publishConfig": {
     "access": "public"
