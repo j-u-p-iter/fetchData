@@ -288,6 +288,7 @@ describe("fetchData", () => {
       nock("http://site.com")
         .get("/products")
         .reply(200, { key: "value" });
+
       nock("http://new-site.com")
         .get("/users")
         .reply(200, { newKey: "newValue" });
@@ -305,6 +306,58 @@ describe("fetchData", () => {
 
       expect(products).toEqual({ key: "value" });
       expect(users).toEqual({ newKey: "newValue" });
+    });
+  });
+
+  describe("hooks", () => {
+    describe("beforeRequest hook", () => {
+      it("updates request properly", async () => {
+        nock("http://site.com", {
+          reqheaders: { Authorization: "Bearer 12345" }
+        })
+          .get("/products")
+          .reply(200, { key: "value" });
+
+        const beforeRequestHook = request => {
+          request.headers.set("Authorization", "Bearer 12345");
+        };
+
+        const { data } = await fetchData.get("http://site.com/products", {
+          hooks: {
+            beforeRequest: [beforeRequestHook]
+          }
+        }).request;
+
+        expect(data).toEqual({ key: "value" });
+      });
+    });
+
+    describe("afterResponse hook", () => {
+      it("updates request properly", async () => {
+        expect.hasAssertions();
+
+        const onErrorResponse = jest.fn();
+
+        nock("http://site.com")
+          .get("/products")
+          .reply(401);
+
+        const afterResponseHook = response => {
+          if (response.status === 401) {
+            onErrorResponse();
+          }
+        };
+
+        try {
+          await fetchData.get("http://site.com/products", {
+            hooks: {
+              afterResponse: [afterResponseHook]
+            }
+          }).request;
+        } catch (error) {
+          expect(onErrorResponse).toHaveBeenCalledTimes(1);
+        }
+      });
     });
   });
 });

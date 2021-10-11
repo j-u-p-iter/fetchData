@@ -233,6 +233,11 @@ const internalFetch = <T>(
 export const createFetchData = (
   defaultOptions: Partial<FetchDataOptions> = {}
 ) => {
+  /**
+   * Loop through all http methods and create "fetch method" for
+   *   each of them.
+   *
+   */
   return enumKeys(HTTPMethod).reduce((resultFetchData, httpMethod) => {
     resultFetchData[HTTPMethod[httpMethod]] = <T = any>(
       url: string,
