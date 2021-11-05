@@ -10,7 +10,7 @@
   "license": "MIT",
   "scripts": {
     "commit": "jupiter-scripts precommit --allowJs",
-    "build": "jupiter-scripts build",
+    "build": "jupiter-scripts build --bundle",
     "lint": "jupiter-scripts lint --format codeFrame",
     "lint:fix": "yarn run lint --fix",
     "test": "jupiter-scripts test",
