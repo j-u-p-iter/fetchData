@@ -34,6 +34,7 @@ interface FetchDataOptions extends RequestInit {
   urlPrefix?: string;
   type?: ResponseBodyType;
   data?: { [key: string]: any };
+  searchParams?: { [key: string]: string } | string;
   hooks?: {
     beforeRequest?: Array<(request: Request) => void>;
     afterResponse?: Array<(response: Response) => void>;
@@ -115,13 +116,16 @@ const optionsReducer = (options: any, httpMethod: HTTPMethod) => {
   return options;
 };
 
-const constructURL = (url: string, urlPrefix: string): string => {
+const addURLPrefix = (
+  url: string,
+  urlPrefix: FetchDataOptions["urlPrefix"]
+): string => {
+  let resultURL = url;
+  let resultURLPrefix = urlPrefix;
+
   if (!urlPrefix) {
     return url;
   }
-
-  let resultURL = url;
-  let resultURLPrefix = urlPrefix;
 
   /**
    * We don't allow to start url without "/",
@@ -137,6 +141,31 @@ const constructURL = (url: string, urlPrefix: string): string => {
   }
 
   return resultURLPrefix + resultURL;
+};
+
+const addSearchParams = (
+  url: string,
+  searchParams: FetchDataOptions["searchParams"]
+): string => {
+  const resultSearchParams =
+    typeof searchParams === "string"
+      ? searchParams.replace(/\?/, "")
+      : searchParams;
+  const resultQueryString = new URLSearchParams(resultSearchParams).toString();
+
+  return resultQueryString && url.includes("?")
+    ? url.replace(/\?.*/, `?${resultQueryString}`)
+    : resultQueryString
+    ? `${url}?${resultQueryString}`
+    : url;
+};
+
+const constructURL = (
+  url: string,
+  urlPrefix: string,
+  searchParams: FetchDataOptions["searchParams"]
+): string => {
+  return addSearchParams(addURLPrefix(url, urlPrefix), searchParams);
 };
 
 /**
@@ -155,9 +184,15 @@ const internalFetch = <T>(
   originalOptions: FetchDataOptions,
   httpMethod: HTTPMethod
 ): { request: Promise<FetchDataResponse<T>>; cancelRequest: () => void } => {
-  const { type, urlPrefix, hooks = {}, ...options } = originalOptions;
+  const {
+    type,
+    urlPrefix,
+    searchParams,
+    hooks = {},
+    ...options
+  } = originalOptions;
 
-  const resultURL = constructURL(url, urlPrefix);
+  const resultURL = constructURL(url, urlPrefix, searchParams);
 
   /**
    * Assign request to a variable to be able to pass it with CommonHttpError

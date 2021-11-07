@@ -3,20 +3,68 @@ import fetch, { Request } from "node-fetch";
 import { createFetchData, fetchData } from ".";
 
 describe("fetchData", () => {
-  describe("shortcut methods", () => {
-    let requestOptions;
+  let requestOptions;
 
-    beforeAll(() => {
-      globalThis.fetch = fetch as any;
-      globalThis.Request = Request as any;
+  beforeAll(() => {
+    globalThis.fetch = fetch as any;
+    globalThis.Request = Request as any;
 
-      requestOptions = {
-        headers: {
-          Authentication: "secret"
-        }
-      };
+    requestOptions = {
+      headers: {
+        Authentication: "secret"
+      }
+    };
+  });
+
+  describe("searchParams option", () => {
+    describe("when searchParams is a string", () => {
+      it("adds query string properly", async () => {
+        nock("http://some-url.com")
+          .get("/products")
+          .query({ q: "hello" })
+          .reply(200, {});
+
+        const result = await fetchData.get("http://some-url.com/products", {
+          searchParams: "q=hello"
+        }).request;
+
+        expect(result.status).toBe(200);
+      });
     });
 
+    describe("when searchParams is an object", () => {
+      it("adds query string properly", async () => {
+        nock("http://some-url.com")
+          .get("/products")
+          .query({ q: "hello", m: "value" })
+          .reply(200, {});
+
+        const result = await fetchData.get("http://some-url.com/products", {
+          searchParams: { q: "hello", m: "value" }
+        }).request;
+
+        expect(result.status).toBe(200);
+      });
+    });
+
+    describe("when query string is included in the url", () => {
+      it("rewrites the original query string", async () => {
+        nock("http://some-url.com")
+          .get("/products")
+          .query({ q: "hello", m: "value" })
+          .reply(200, {});
+
+        const result = await fetchData.get(
+          "http://some-url.com/products?v=someValue&z=anotherValue",
+          { searchParams: { q: "hello", m: "value" } }
+        ).request;
+
+        expect(result.status).toBe(200);
+      });
+    });
+  });
+
+  describe("shortcut methods", () => {
     describe("GET request", () => {
       /**
        * Check that the get wrapper around native fetch method::
