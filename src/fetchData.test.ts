@@ -225,20 +225,6 @@ describe("fetchData", () => {
       });
     });
 
-    describe('with "null" value', () => {
-      it("resolves body as null", async () => {
-        nock("http://some-url.com")
-          .post("/products")
-          .reply(200);
-
-        const response = await fetchData.post("http://some-url.com/products", {
-          type: null
-        }).request;
-
-        expect(response.data).toBe(null);
-      });
-    });
-
     /**
      * Using duck typing to check that instance
      *   belongs to Blob class.

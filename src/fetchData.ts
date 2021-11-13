@@ -15,10 +15,6 @@ enum HTTPMethod {
   DELETE = "delete"
 }
 
-/**
- * null is in case body response body is empty
- *
- */
 enum ResponseBodyType {
   JSON = "json",
   BLOB = "blob",
@@ -36,7 +32,7 @@ interface FetchDataOptions extends RequestInit {
    *   need to use the data as "json".
    */
   urlPrefix?: string;
-  type?: ResponseBodyType | null;
+  type?: ResponseBodyType;
   data?: { [key: string]: any };
   searchParams?: { [key: string]: string } | string;
   hooks?: {
@@ -189,15 +185,10 @@ const internalFetch = <T>(
   httpMethod: HTTPMethod
 ): { request: Promise<FetchDataResponse<T>>; cancelRequest: () => void } => {
   const {
+    type,
     urlPrefix,
     searchParams,
     hooks = {},
-    /**
-     * In majority of cases we need to resolve data
-     *   as a json. So, we set up the "json" resolving method
-     *   as a default one.
-     */
-    type = DEFAULT_EXPECTED_DATA_TYPE,
     ...options
   } = originalOptions;
 
@@ -248,7 +239,13 @@ const internalFetch = <T>(
         );
       }
 
-      const responseData = type ? await response[type]() : null;
+      /**
+       * In majority of cases we need to resolve data
+       *   as a json. So, we set up the "json" resolving method
+       *   as a default one.
+       */
+      const expectedDataType = type || DEFAULT_EXPECTED_DATA_TYPE;
+      const responseData = await response[expectedDataType]();
 
       return {
         status: response.status,
